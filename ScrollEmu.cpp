@@ -7,21 +7,19 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <shellscalingapi.h>
+#include <shellapi.h>
+#include <tchar.h>
 
 // C RunTime Header Files
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
-#include <tchar.h>
-#include <shellapi.h>
-#include <tchar.h>
 #include <utility>
 #include <sstream>
 
 #define MAX_LOADSTRING 100
-#define MY_NOTIFICATION_ICON 2
-#define MY_SCROLLNOW (WM_USER + 88)
 
+// debug
 int hit = 0;
 
 // Global Variables:
@@ -38,13 +36,10 @@ INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL myState = FALSE;
 HWND g_hwnd = NULL;
 HHOOK g_hook = NULL;
-long x, y;
-HICON hIconSm, hIcon;
-
+HICON hIconSm;
 
 void Cleanup()
 {
-    //UnregisterHotKey(g_hwnd, 1);
     if (g_hook) {
         UnhookWindowsHookEx(g_hook);
         g_hook = NULL;
@@ -56,14 +51,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_ LPTSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
-    //__debugbreak();
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-
- 	// TODO: Place code here.
-	MSG msg;
-	HACCEL hAccelTable;
 
     BYTE andBits[] = {
         /*         LO    HI */
@@ -111,8 +101,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
             andBits,
             xorBits);
 
+#if 0
     BYTE andBits2[sizeof(andBits) * 4] = {};
-    BYTE xorBits2[sizeof(andBits2)] = {};
+    BYTE xorBits2[sizeof(andBits2) * 4] = {};
     hIcon = CreateIcon(hInstance,
             32,
             32,
@@ -120,14 +111,12 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
             1,
             andBits2,
             xorBits2);
+#endif
 
 	// Initialize global strings
-	//LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     _tcscpy(szTitle, _T("ScrollEmu -- close this window to exit"));
-	//LoadString(hInstance, IDC_REMAPHJKL, szWindowClass, MAX_LOADSTRING);
     _tcscpy(szWindowClass, _T("ScrollEmuWindowClass"));
 	MyRegisterClass(hInstance);
-
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
@@ -135,17 +124,12 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	//hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_REMAPHJKL));
-    hAccelTable = NULL;
-
 	// Main message loop:
+	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
-		//if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-		//{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		//}
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
 	}
 
 	Cleanup();
@@ -153,7 +137,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	return (int) msg.wParam;
 }
 
-volatile int numExited = 0;
 DWORD WINAPI ThrdProc(LPVOID data)
 {
     long dx = ((std::pair<long, long>*)data)->first;
@@ -195,7 +178,6 @@ DWORD WINAPI ThrdProc(LPVOID data)
     if (sz) {
         SendInput(sz, tInput, sizeof(INPUT));
     }
-    ++numExited;
     ExitThread(0);
 }
 
@@ -210,20 +192,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	WNDCLASSEX wcex;
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
-
-#if 0
-    auto hIcon = LoadIcon(hInstance, IDI_QUESTION);
-    TCHAR pathToMyself[1024];
-    TCHAR pathToIco[1024], *filePart;
-    if(0 < GetModuleFileName(NULL, pathToMyself, sizeof(pathToMyself)/sizeof(pathToMyself[0]))) {
-        GetFullPathName(pathToMyself, sizeof(pathToIco)/sizeof(pathToIco[0]), pathToIco, &filePart);
-        _tcscpy(filePart, L"screen.ico");
-        hIcon = LoadIcon(hInstance, pathToIco);
-        _tcscpy(pathToIco, (std::wstringstream() << GetLastError()).str().c_str());
-        MessageBox(NULL, pathToIco, pathToIco, MB_OK);
-        ExitProcess(0);
-    }
-#endif
 	wcex.style			= CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc	= WndProc;
 	wcex.cbClsExtra		= 0;
@@ -232,19 +200,16 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hIcon			= hIconSm;
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
-	wcex.lpszMenuName = NULL;// MAKEINTRESOURCE(IDC_REMAPHJKL);
+	wcex.lpszMenuName = NULL;
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= hIconSm;
 
 	return RegisterClassEx(&wcex);
 }
 
-#include <fstream>
-LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK LLMouseHook(int code, WPARAM wParam, LPARAM lParam)
 {
 	if (code != HC_ACTION) return CallNextHookEx(NULL, code, wParam, lParam);
-
-	//if (!myState) return CallNextHookEx(NULL, code, wParam, lParam);
 
     MSLLHOOKSTRUCT* hs = (MSLLHOOKSTRUCT*)lParam;
 
@@ -254,8 +219,6 @@ LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
         case WM_NCXBUTTONDOWN:
             if(HIWORD(hs->mouseData) == XBUTTON2) {
                 myState = true;
-                x = hs->pt.x;
-                y = hs->pt.y;
             }
             break;
         case WM_XBUTTONUP:
@@ -267,13 +230,12 @@ LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
         case WM_MOUSEMOVE:
             if(myState) {
                 if(hs->flags & (LLMHF_LOWER_IL_INJECTED|LLMHF_INJECTED)) {
-                    x = hs->pt.x;
-                    y = hs->pt.y;
+                    // FALLTHROUGH
                 } else {
                     POINT p;
                     GetCursorPos(&p);
-                    x = p.x;
-                    y = p.y;
+                    long x = p.x;
+                    long y = p.y;
 
                     long dx, dy;
                     dx = x - hs->pt.x;
@@ -316,8 +278,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   //RegisterHotKey(hWnd, 1, MOD_ALT | MOD_CONTROL, '3'); // TODO cleanup
-   g_hook = SetWindowsHookEx(WH_MOUSE_LL, &KeyboardHook, hInst, 0);
+   // TODO also keyboardhook to handle scroll lock
+   g_hook = SetWindowsHookEx(WH_MOUSE_LL, &LLMouseHook, hInst, 0);
    g_hwnd = hWnd;
 
    ShowWindow(hWnd, SW_SHOWDEFAULT);
@@ -344,25 +306,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	case WM_COMMAND:
-		wmId    = LOWORD(wParam);
-		wmEvent = HIWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
-		{
-		//case IDM_ABOUT:
-			//DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-			//break;
-		//case IDM_EXIT:
-		//	DestroyWindow(hWnd);
-		//	break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-		break;
 	case WM_PAINT: {
 		hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code here...
         RECT r = { 0, 0, 100, 100 };
         FillRect(hdc, &r, (HBRUSH) (COLOR_WINDOW+1));
         DrawText(hdc, (std::wstringstream() << hit).str().c_str(), (std::wstringstream() << hit).str().size(), &r, DT_BOTTOM|DT_RIGHT);
@@ -371,12 +316,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
         Cleanup();
 		PostQuitMessage(0);
-        //TerminateProcess(hWnd, 0);
         ExitProcess(0);
 		break;
     case WM_CLOSE:
     {
-        printf("WM_CLOSE\n");
         DestroyWindow(hWnd);
         return 0;
     }
