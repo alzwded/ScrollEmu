@@ -5,6 +5,7 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
+#include <windowsx.h>
 #include <shellscalingapi.h>
 
 // C RunTime Header Files
@@ -20,6 +21,8 @@
 #define MAX_LOADSTRING 100
 #define MY_NOTIFICATION_ICON 2
 #define MY_SCROLLNOW (WM_USER + 88)
+
+int hit = 0;
 
 // Global Variables:
 HINSTANCE hInst;								// current instance
@@ -263,14 +266,31 @@ LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
             break;
         case WM_MOUSEMOVE:
             if(myState) {
-                long dx, dy;
-                dx = x - hs->pt.x;
-                dy = hs->pt.y - y;
-                auto h = CreateThread(NULL, 0, &ThrdProc, new std::pair<long, long>(dx, dy), 0, NULL);
-                CloseHandle(h);
+                if(hs->flags & (LLMHF_LOWER_IL_INJECTED|LLMHF_INJECTED)) {
+                    x = hs->pt.x;
+                    y = hs->pt.y;
+                } else {
+                    long dx, dy;
+                    dx = x - hs->pt.x;
+                    dy = hs->pt.y - y;
+                    POINT p;
+                    GetCursorPos(&p);
+                    x = p.x;
+                    y = p.y;
+                    auto h = CreateThread(NULL, 0, &ThrdProc, new std::pair<long, long>(dx, dy), 0, NULL);
+                    CloseHandle(h);
+                }
                 return 1;
             }
             break;
+        default:
+            /*
+            RedrawWindow(g_hwnd, NULL, NULL, RDW_INVALIDATE);
+            hit = wParam;
+                    x = hs->pt.x;
+                    y = hs->pt.y;
+                    */
+                    break;
     }
 
 	return CallNextHookEx(NULL, code, wParam, lParam);
@@ -345,11 +365,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
-	case WM_PAINT:
+	case WM_PAINT: {
 		hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code here...
+        RECT r = { 0, 0, 100, 100 };
+        FillRect(hdc, &r, (HBRUSH) (COLOR_WINDOW+1));
+        DrawText(hdc, (std::wstringstream() << hit).str().c_str(), (std::wstringstream() << hit).str().size(), &r, DT_BOTTOM|DT_RIGHT);
 		EndPaint(hWnd, &ps);
-		break;
+                   }break;
 	case WM_DESTROY:
         Cleanup();
 		PostQuitMessage(0);
