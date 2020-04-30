@@ -15,6 +15,7 @@
 #include <shellapi.h>
 #include <tchar.h>
 #include <utility>
+#include <sstream>
 
 #define MAX_LOADSTRING 100
 #define MY_NOTIFICATION_ICON 2
@@ -34,8 +35,8 @@ INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL myState = FALSE;
 HWND g_hwnd = NULL;
 HHOOK g_hook = NULL;
-HICON g_icons[2] = { NULL, NULL };
 long x, y;
+HICON hIconSm, hIcon;
 
 
 void Cleanup()
@@ -61,12 +62,69 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	HACCEL hAccelTable;
 
+    BYTE andBits[] = {
+        /*         LO    HI */
+        /* 00 */ 0xFF, 0xFF,
+        /* 01 */ 0x40, 0x02,
+        /* 02 */ 0x40, 0x02,
+        /* 03 */ 0x40, 0x02,
+        /* 04 */ 0x40, 0x02,
+        /* 05 */ 0x40, 0x02,
+        /* 06 */ 0x40, 0x02,
+        /* 07 */ 0x40, 0x02,
+        /* 08 */ 0x40, 0x02,
+        /* 09 */ 0x40, 0x02,
+        /* 0A */ 0x40, 0x02,
+        /* 0B */ 0x40, 0x02,
+        /* 0C */ 0x20, 0x04,
+        /* 0D */ 0x10, 0x08,
+        /* 0E */ 0x0F, 0xF0,
+        /* 0F */ 0x00, 0x00,
+    };
+    BYTE xorBits[] = {
+        /*         LO    HI */
+        /* 00 */ 0x00, 0x00,
+        /* 01 */ 0x1F, 0xF8,
+        /* 02 */ 0x1E, 0x78,
+        /* 03 */ 0x1E, 0x78,
+        /* 04 */ 0x1E, 0x78,
+        /* 05 */ 0x1E, 0x78,
+        /* 06 */ 0x1F, 0x78,
+        /* 07 */ 0x1F, 0xF8,
+        /* 08 */ 0x1F, 0xF8,
+        /* 09 */ 0x1F, 0xF8,
+        /* 0A */ 0x1F, 0xF8,
+        /* 0B */ 0x1F, 0xF8,
+        /* 0C */ 0x0F, 0xF0,
+        /* 0D */ 0x07, 0xE0,
+        /* 0E */ 0x00, 0x00,
+        /* 0F */ 0x00, 0x00,
+    };
+    hIconSm = CreateIcon(hInstance,
+            16,
+            16,
+            1,
+            1,
+            andBits,
+            xorBits);
+
+    BYTE andBits2[sizeof(andBits) * 4] = {};
+    BYTE xorBits2[sizeof(andBits2)] = {};
+    hIcon = CreateIcon(hInstance,
+            32,
+            32,
+            1,
+            1,
+            andBits2,
+            xorBits2);
+
 	// Initialize global strings
 	//LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    _tcscpy(szTitle, _T("title"));
+    _tcscpy(szTitle, _T("ScrollEmu -- close this window to exit"));
 	//LoadString(hInstance, IDC_REMAPHJKL, szWindowClass, MAX_LOADSTRING);
     _tcscpy(szWindowClass, _T("ScrollEmuWindowClass"));
 	MyRegisterClass(hInstance);
+
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
@@ -147,17 +205,30 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
+#if 0
+    auto hIcon = LoadIcon(hInstance, IDI_QUESTION);
+    TCHAR pathToMyself[1024];
+    TCHAR pathToIco[1024], *filePart;
+    if(0 < GetModuleFileName(NULL, pathToMyself, sizeof(pathToMyself)/sizeof(pathToMyself[0]))) {
+        GetFullPathName(pathToMyself, sizeof(pathToIco)/sizeof(pathToIco[0]), pathToIco, &filePart);
+        _tcscpy(filePart, L"screen.ico");
+        hIcon = LoadIcon(hInstance, pathToIco);
+        _tcscpy(pathToIco, (std::wstringstream() << GetLastError()).str().c_str());
+        MessageBox(NULL, pathToIco, pathToIco, MB_OK);
+        ExitProcess(0);
+    }
+#endif
 	wcex.style			= CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc	= WndProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(hInstance, IDI_WINLOGO);//MAKEINTRESOURCE(IDI_REMAPHJKL));
+	wcex.hIcon			= hIconSm;
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
 	wcex.lpszMenuName = NULL;// MAKEINTRESOURCE(IDC_REMAPHJKL);
 	wcex.lpszClassName	= szWindowClass;
-	wcex.hIconSm		= LoadIcon(wcex.hInstance, IDI_WINLOGO);//MAKEINTRESOURCE(IDI_SMALL));
+	wcex.hIconSm		= hIconSm;
 
 	return RegisterClassEx(&wcex);
 }
@@ -220,7 +291,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-	   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+	   CW_USEDEFAULT, CW_USEDEFAULT, 500, 100, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
    {
@@ -233,11 +304,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    ShowWindow(hWnd, SW_SHOWDEFAULT);
    UpdateWindow(hWnd);
-
-
-   g_icons[0] = LoadIcon(hInstance, IDI_WINLOGO);//MAKEINTRESOURCE(IDI_SMALL));
-   g_icons[1] = LoadIcon(hInstance, IDI_WINLOGO);//MAKEINTRESOURCE(IDI_SMALL_ACTIVE));
-
 
    return TRUE;
 }
