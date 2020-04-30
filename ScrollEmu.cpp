@@ -270,13 +270,14 @@ LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
                     x = hs->pt.x;
                     y = hs->pt.y;
                 } else {
-                    long dx, dy;
-                    dx = x - hs->pt.x;
-                    dy = hs->pt.y - y;
                     POINT p;
                     GetCursorPos(&p);
                     x = p.x;
                     y = p.y;
+
+                    long dx, dy;
+                    dx = x - hs->pt.x;
+                    dy = hs->pt.y - y;
                     auto h = CreateThread(NULL, 0, &ThrdProc, new std::pair<long, long>(dx, dy), 0, NULL);
                     CloseHandle(h);
                 }
@@ -284,13 +285,7 @@ LRESULT CALLBACK KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
             }
             break;
         default:
-            /*
-            RedrawWindow(g_hwnd, NULL, NULL, RDW_INVALIDATE);
-            hit = wParam;
-                    x = hs->pt.x;
-                    y = hs->pt.y;
-                    */
-                    break;
+            break;
     }
 
 	return CallNextHookEx(NULL, code, wParam, lParam);
