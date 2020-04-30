@@ -163,7 +163,8 @@ DWORD WINAPI ThrdProc(LPVOID data)
         ++sz;
         tInput[0].mi = {};
         tInput[0].mi.dx = tInput[1].mi.dy = 0;
-        tInput[0].mi.mouseData = dx / adjust * WHEEL_DELTA;
+        //tInput[0].mi.mouseData = dx / adjust * WHEEL_DELTA;
+        tInput[0].mi.mouseData = (dx / adjust < 0) ? -WHEEL_DELTA : WHEEL_DELTA;
         tInput[0].mi.dwFlags = MOUSEEVENTF_HWHEEL;
         tInput[0].mi.dwExtraInfo = NULL;
     }
@@ -171,14 +172,16 @@ DWORD WINAPI ThrdProc(LPVOID data)
         ++sz;
         tInput[0].mi = {};
         tInput[0].mi.dx = tInput[1].mi.dy = 0;
-        tInput[0].mi.mouseData = dy / adjust * WHEEL_DELTA;
+        //tInput[0].mi.mouseData = dy / adjust * WHEEL_DELTA;
+        tInput[0].mi.mouseData = (dy / adjust < 0) ? -WHEEL_DELTA : WHEEL_DELTA;
         tInput[0].mi.dwFlags = MOUSEEVENTF_WHEEL;
         tInput[0].mi.dwExtraInfo = NULL;
         if (dx / adjust != 0) {
             ++sz;
             tInput[1].mi = {};
             tInput[1].mi.dx = tInput[1].mi.dy = 0;
-            tInput[1].mi.mouseData = dx / adjust * WHEEL_DELTA;
+            //tInput[1].mi.mouseData = dx / adjust * WHEEL_DELTA;
+            tInput[0].mi.mouseData = (dx / adjust < 0) ? -WHEEL_DELTA : WHEEL_DELTA;
             tInput[1].mi.time = 0;
             tInput[1].mi.dwFlags = MOUSEEVENTF_HWHEEL;
             tInput[1].mi.dwExtraInfo = NULL;
