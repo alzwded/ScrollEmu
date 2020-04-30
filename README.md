@@ -14,7 +14,9 @@ TODO:
 Read all about it
 =================
 
-Launch ScreenEmu.exe. It will ask to be elevated and to get accessibility access.
+Launch ScreenEmu.exe. It will ask to be elevated ~~and to get accessibility access~~. [1]
+
+[1]: that raises issues with code signing and trust, unfortunately
 
 You can now hold down "mouse extra button 2" and move the mouse; this will send vertical and horizontal scroll wheel movement instead of moving the pointer.
 
