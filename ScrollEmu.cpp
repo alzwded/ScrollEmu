@@ -219,13 +219,13 @@ LRESULT CALLBACK LLMouseHook(int code, WPARAM wParam, LPARAM lParam)
             if(HIWORD(hs->mouseData) == XBUTTON2) {
                 myState = true;
             }
-            break;
+            return 1;
         case WM_XBUTTONUP:
         case WM_NCXBUTTONUP:
             if(HIWORD(hs->mouseData) == XBUTTON2) {
                 myState = false;
             }
-            break;
+            return 1;
         case WM_MOUSEMOVE:
             if(myState) {
                 if(hs->flags & (LLMHF_LOWER_IL_INJECTED|LLMHF_INJECTED)) {
